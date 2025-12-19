@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #333;
+  margin: 0;
+  padding: 40px;
+}
+
+.title {
+  color: white;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin: 20px auto;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  animation: fade 0.6s ease;
+}
+
+.center {
+  text-align: center;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px;
+  width: 100%;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap: 15px;
+}
+
+.service-card {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.service-row {
+  display: flex;
+  justify-content: space-between;
+  background: #f3f3f3;
+  padding: 6px 10px;
+  margin: 5px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: default;
+}
+.service-row span {
+  cursor: pointer;
+}
+
+body {
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: Arial;
+}
+
+.title {
+  text-align: center;
+  margin: 20px;
+}
+
+.card, .service-card {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 10px;
+  margin: 10px auto;
+  width: 90%;
+  max-width: 400px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+}
+
+input, select, button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+}
+
+button {
+  background: #38bdf8;
+  cursor: pointer;
+}

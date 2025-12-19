@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Owner Registration</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1 class="title">Owner Registration</h1>
+
+<div class="card">
+
+  <!-- OWNER DETAILS -->
+  <label>Email</label>
+  <input id="email" type="email" placeholder="owner@email.com">
+
+  <label>Password</label>
+  <input id="password" type="password" placeholder="Minimum 6 characters">
+
+  <hr>
+
+  <!-- FACILITY DETAILS -->
+  <label>Facility Name</label>
+  <input id="facilityName" placeholder="ABC Hospital">
+
+  <label>Facility Type</label>
+  <select id="facilityType">
+    <option value="">-- Select Type --</option>
+    <option value="Campus">Campus</option>
+    <option value="Hotel">Hotel</option>
+    <option value="Hospital">Hospital</option>
+    <option value="Corporate Office">Corporate Office</option>
+  </select>
+
+  <hr>
+
+  <!-- SUB SERVICES -->
+  <label>Add Sub-Services</label>
+
+  <div id="serviceList"></div>
+
+  <div style="display:flex; gap:10px; margin-top:10px">
+    <input id="serviceInput" placeholder="e.g. ICU, Reception">
+    <button type="button" onclick="addService()">Add</button>
+  </div>
+
+  <!-- REGISTER BUTTON -->
+  <button type="button" style="margin-top:15px" onclick="registerOwner()">
+    Register Facility
+  </button>
+
+  <p id="msg"></p>
+</div>
+
+<script>
+/* ---------------- STATE ---------------- */
+let services = [];
+
+/* ---------------- ADD SERVICE ---------------- */
+function addService() {
+  const val = serviceInput.value.trim();
+  if (!val) return;
+
+  services.push(val);
+  serviceInput.value = "";
+  renderServices();
+}
+
+/* ---------------- REMOVE SERVICE ---------------- */
+function removeService(index) {
+  services.splice(index, 1);
+  renderServices();
+}
+
+/* ---------------- RENDER SERVICES ---------------- */
+function renderServices() {
+  serviceList.innerHTML = services.map((s, i) => `
+    <div class="service-row">
+      ${s}
+      <span onclick="removeService(${i})">❌</span>
+    </div>
+  `).join("");
+}
+
+/* ---------------- REGISTER OWNER ---------------- */
+async function registerOwner() {
+  console.log("Register button clicked"); // DEBUG
+
+  if (
+    !email.value ||
+    !password.value ||
+    !facilityName.value ||
+    !facilityType.value
+  ) {
+    alert("Please fill all fields");
+    return;
+  }
+
+  if (password.value.length < 6) {
+    alert("Password must be at least 6 characters");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value,
+        facilityName: facilityName.value,
+        facilityType: facilityType.value,
+        services: services
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      msg.innerText = data.error;
+      msg.style.color = "red";
+    } else {
+      msg.innerText = "Registration successful!";
+      msg.style.color = "green";
+
+      // Reset form
+      email.value = "";
+      password.value = "";
+      facilityName.value = "";
+      facilityType.value = "";
+      services = [];
+      renderServices();
+    }
+
+  } catch (err) {
+    console.error(err);
+    msg.innerText = "Server error";
+    msg.style.color = "red";
+  }
+}
+</script>
+
+</body>
+</html>

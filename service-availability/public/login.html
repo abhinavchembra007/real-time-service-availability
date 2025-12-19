@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Service Editor Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1 class="title">Service Editor Login</h1>
+
+<div class="card">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<script>
+document.getElementById("loginBtn").addEventListener("click", login);
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("msg");
+
+  if (!email || !password) {
+    msg.innerText = "All fields required";
+    msg.style.color = "red";
+    return;
+  }
+
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    msg.innerText = data.error;
+    msg.style.color = "red";
+    return;
+  }
+
+  localStorage.setItem("facilityId", data.facilityId);
+  window.location.href = "editor.html";
+}
+</script>
+
+</body>
+</html>

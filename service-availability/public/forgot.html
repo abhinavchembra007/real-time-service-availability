@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Forgot Password</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="login-card">
+  <h2>Forgot Password</h2>
+  <input id="email" placeholder="Email">
+  <button onclick="send()">Send OTP</button>
+  <p id="msg"></p>
+</div>
+
+<script>
+async function send() {
+  const res = await fetch("/api/send-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.value })
+  });
+  msg.innerText = (await res.json()).message;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Owner Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1 class="title">Owner Dashboard</h1>
+
+<div class="card">
+  <h3>Select Facility</h3>
+  <select id="facility"></select>
+</div>
+
+<div class="card">
+  <h3>Add Sub-Service</h3>
+  <input id="serviceName" placeholder="Service name (Lab, Reception)">
+  <button onclick="addService()">Add</button>
+</div>
+
+<div class="card">
+  <h3>Services</h3>
+  <ul id="services"></ul>
+</div>
+
+<script>
+async function loadFacilities() {
+  const res = await fetch("/api/facilities");
+  const data = await res.json();
+  facility.innerHTML = data.map(f =>
+    `<option value="${f._id}">${f.name} (${f.type})</option>`
+  ).join("");
+  loadServices();
+}
+
+async function loadServices() {
+  const res = await fetch(`/api/services/${facility.value}`);
+  const data = await res.json();
+  services.innerHTML = data.map(s =>
+    `<li>${s.name}
+      <button onclick="del('${s._id}')">❌</button>
+    </li>`
+  ).join("");
+}
+
+async function addService() {
+  await fetch("/api/services", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      facilityId: facility.value,
+      name: serviceName.value
+    })
+  });
+  serviceName.value = "";
+  loadServices();
+}
+
+async function del(id) {
+  await fetch(`/api/services/${id}`, { method: "DELETE" });
+  loadServices();
+}
+
+facility.onchange = loadServices;
+loadFacilities();
+</script>
+
+</body>
+</html>
