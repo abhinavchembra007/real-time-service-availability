@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>Live Service Availability</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -10,8 +9,21 @@
 <h1 class="title">Live Service Availability</h1>
 
 <div class="card">
-  <label>Select Facility</label>
   <select id="facility"></select>
+  <input id="search" placeholder="Search service...">
+</div>
+
+<!-- AI REVIEW -->
+<div id="reviewCard" class="card ai-card" style="display:none">
+  <h2 id="facilityTitle"></h2>
+  ⭐ <span id="rating"></span>/5
+  <span id="badge" class="ai-badge"></span>
+
+  <p>🟢 Available: <span id="available"></span></p>
+  <p>🟡 Delayed: <span id="delayed"></span></p>
+  <p>🔴 Down: <span id="down"></span></p>
+
+  <p id="summary"></p>
 </div>
 
 <div class="grid" id="services"></div>

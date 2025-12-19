@@ -1,84 +1,133 @@
-const facility = document.getElementById("facility");
-const servicesDiv = document.getElementById("services");
+const facilitySelect = document.getElementById("facility");
+const servicesGrid = document.getElementById("services");
+const searchInput = document.getElementById("search");
+
+/* AI Review Elements */
+const reviewCard = document.getElementById("reviewCard");
+const ratingEl = document.getElementById("rating");
+const badgeEl = document.getElementById("badge");
+const summaryEl = document.getElementById("summary");
+const availableEl = document.getElementById("available");
+const delayedEl = document.getElementById("delayed");
+const downEl = document.getElementById("down");
+const facilityTitle = document.getElementById("facilityTitle");
+
+let servicesCache = [];
+
+/* ---------------- TIME HELPERS ---------------- */
+function remaining(backInMinutes, updatedAt) {
+  if (backInMinutes == null || !updatedAt) return "";
+
+  const end =
+    new Date(updatedAt).getTime() + backInMinutes * 60000;
+  const diff = end - Date.now();
+
+  if (diff <= 0) return "Now";
+
+  const m = Math.floor(diff / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${m}m ${s}s`;
+}
 
 /* ---------------- LOAD FACILITIES ---------------- */
 async function loadFacilities() {
   const res = await fetch("/api/facilities");
-  const data = await res.json();
+  const facilities = await res.json();
 
-  facility.innerHTML = data.map(f =>
-    `<option value="${f._id}">${f.name} (${f.type})</option>`
-  ).join("");
+  facilitySelect.innerHTML = "";
+  facilities.forEach(f => {
+    const opt = document.createElement("option");
+    opt.value = f._id;
+    opt.textContent = `${f.name} (${f.type})`;
+    facilitySelect.appendChild(opt);
+  });
 
   loadServices();
-}
-
-/* ---------------- FORMAT TIME ---------------- */
-function formatTime(ms) {
-  if (ms <= 0) return "Any moment";
-
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-
-  return `${min}m ${sec}s`;
+  loadReview();
 }
 
 /* ---------------- LOAD SERVICES ---------------- */
 async function loadServices() {
-  if (!facility.value) return;
-
-  const res = await fetch(`/api/services/${facility.value}`);
-  const data = await res.json();
-
-  const now = Date.now();
-
-  servicesDiv.innerHTML = data.map(s => {
-    let counterHTML = "";
-
-    if (s.status !== "Available" && s.expectedTime && s.updatedAt) {
-      const endTime =
-        new Date(s.updatedAt).getTime() +
-        parseInt(s.expectedTime) * 60000;
-
-      const remaining = endTime - now;
-
-      counterHTML = `
-        <p>
-          <b>Back In:</b>
-          <span class="counter" data-end="${endTime}">
-            ${formatTime(remaining)}
-          </span>
-        </p>
-      `;
-    }
-
-    return `
-      <div class="service-card ${s.status.toLowerCase()}">
-        <h3>${s.name}</h3>
-        <p><b>Status:</b> ${s.status}</p>
-        ${s.reason ? `<p><b>Reason:</b> ${s.reason}</p>` : ""}
-        ${counterHTML}
-        ${s.contact ? `<p><b>Contact:</b> ${s.contact}</p>` : ""}
-      </div>
-    `;
-  }).join("");
+  const res = await fetch(`/api/services/${facilitySelect.value}`);
+  servicesCache = await res.json();
+  renderServices(servicesCache);
 }
 
-/* ---------------- LIVE COUNTER ---------------- */
+/* ---------------- RENDER SERVICES ---------------- */
+function renderServices(services) {
+  servicesGrid.innerHTML = services.map(s => `
+    <div class="service-card">
+      <h3>${s.name}</h3>
+      <p>Status: <b>${s.status}</b></p>
+
+      ${s.reason ? `<p>Reason: ${s.reason}</p>` : ""}
+
+      ${
+        s.backInMinutes != null
+          ? `<p>⏳ Back In:
+              <span class="timer"
+                data-min="${s.backInMinutes}"
+                data-updated="${s.updatedAt}">
+              </span>
+            </p>`
+          : ""
+      }
+
+      ${s.contact ? `<p>Contact: ${s.contact}</p>` : ""}
+    </div>
+  `).join("");
+}
+
+/* ---------------- SEARCH ---------------- */
+searchInput.addEventListener("input", () => {
+  const q = searchInput.value.toLowerCase();
+  renderServices(
+    servicesCache.filter(s =>
+      s.name.toLowerCase().includes(q)
+    )
+  );
+});
+
+/* ---------------- AI REVIEW ---------------- */
+async function loadReview() {
+  const res = await fetch(`/api/review/${facilitySelect.value}`);
+  const data = await res.json();
+  if (!data) return;
+
+  reviewCard.style.display = "block";
+  ratingEl.innerText = data.rating;
+  badgeEl.innerText = data.badge;
+  summaryEl.innerText = `"${data.summary}"`;
+
+  availableEl.innerText = data.counts.available;
+  delayedEl.innerText = data.counts.delayed;
+  downEl.innerText = data.counts.down;
+
+  facilityTitle.innerText =
+    facilitySelect.options[facilitySelect.selectedIndex].text;
+}
+
+/* ---------------- EVENTS ---------------- */
+facilitySelect.addEventListener("change", () => {
+  loadServices();
+  loadReview();
+});
+
+/* ---------------- REAL COUNTDOWN (EVERY SECOND) ---------------- */
 setInterval(() => {
-  document.querySelectorAll(".counter").forEach(el => {
-    const end = parseInt(el.dataset.end);
-    const remaining = end - Date.now();
-    el.innerText = formatTime(remaining);
+  document.querySelectorAll(".timer").forEach(el => {
+    el.innerText = remaining(
+      Number(el.dataset.min),
+      el.dataset.updated
+    );
   });
 }, 1000);
 
-/* ---------------- EVENTS ---------------- */
-facility.addEventListener("change", loadServices);
+/* ---------------- AUTO REFRESH (DATA) ---------------- */
+setInterval(() => {
+  loadServices();
+  loadReview();
+}, 5000);
 
 /* ---------------- INIT ---------------- */
 loadFacilities();
-
-/* 🔁 Auto refresh backend data */
-setInterval(loadServices, 5000);

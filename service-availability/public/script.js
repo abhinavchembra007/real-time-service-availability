@@ -1,125 +1,90 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const path = require("path");
+const facilitySelect = document.getElementById("facility");
+const servicesGrid = document.getElementById("services");
 
-const app = express();
-app.use(express.json());
-app.use(express.static("public"));
+/* AI Review Elements */
+const reviewCard = document.getElementById("reviewCard");
+const ratingEl = document.getElementById("rating");
+const badgeEl = document.getElementById("badge");
+const summaryEl = document.getElementById("summary");
+const availableEl = document.getElementById("available");
+const delayedEl = document.getElementById("delayed");
+const downEl = document.getElementById("down");
+const facilityTitle = document.getElementById("facilityTitle");
 
-/* ---------------- DB ---------------- */
-mongoose.connect("mongodb://127.0.0.1:27017/service_availability")
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.error(err));
+/* ---------------- HELPERS ---------------- */
+function getRemainingTime(time) {
+  if (!time) return "";
+  const diff = new Date(time) - new Date();
+  if (diff <= 0) return "Now";
 
-/* ---------------- SCHEMAS ---------------- */
+  const mins = Math.floor(diff / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  return `${mins}m ${secs}s`;
+}
 
-// Admin
-const AdminSchema = new mongoose.Schema({
-  email: { type: String, unique: true },
-  password: String
-});
-const Admin = mongoose.model("Admin", AdminSchema);
+/* ---------------- LOAD FACILITIES ---------------- */
+async function loadFacilities() {
+  const res = await fetch("/api/facilities");
+  const facilities = await res.json();
 
-// Facility
-const FacilitySchema = new mongoose.Schema({
-  name: String,
-  type: String
-});
-const Facility = mongoose.model("Facility", FacilitySchema);
+  facilitySelect.innerHTML = "";
+  facilities.forEach(f => {
+    const opt = document.createElement("option");
+    opt.value = f._id;
+    opt.textContent = `${f.name} (${f.type})`;
+    facilitySelect.appendChild(opt);
+  });
 
-// Service
-const ServiceSchema = new mongoose.Schema({
-  facilityId: mongoose.Schema.Types.ObjectId,
-  name: String,
-  status: { type: String, default: "Available" },
-  reason: String,
-  expectedTime: String,
-  contact: String,
-  updatedAt: Date
-});
-const Service = mongoose.model("Service", ServiceSchema);
+  loadServices();
+  loadReview();
+}
 
-/* ---------------- AUTH ---------------- */
+/* ---------------- LOAD SERVICES ---------------- */
+async function loadServices() {
+  const res = await fetch(`/api/services/${facilitySelect.value}`);
+  const services = await res.json();
 
-// Register admin (one time)
-app.post("/api/register", async (req, res) => {
-  try {
-    const hashed = await bcrypt.hash(req.body.password, 10);
-    const admin = await Admin.create({
-      email: req.body.email,
-      password: hashed
-    });
-    res.json({ message: "Admin registered" });
-  } catch {
-    res.status(500).json({ error: "Registration failed" });
-  }
-});
+  servicesGrid.innerHTML = services.map(s => `
+    <div class="service-card">
+      <h3>${s.name}</h3>
+      <p>Status: <b>${s.status}</b></p>
+      ${s.reason ? `<p>Reason: ${s.reason}</p>` : ""}
+      ${s.expectedTime ? `<p>Back In: ${getRemainingTime(s.expectedTime)}</p>` : ""}
+      ${s.contact ? `<p>Contact: ${s.contact}</p>` : ""}
+    </div>
+  `).join("");
+}
 
-// Login admin
-app.post("/api/login", async (req, res) => {
-  const admin = await Admin.findOne({ email: req.body.email });
-  if (!admin) return res.status(401).json({ error: "Invalid credentials" });
+/* ---------------- LOAD AI REVIEW ---------------- */
+async function loadReview() {
+  const res = await fetch(`/api/review/${facilitySelect.value}`);
+  const data = await res.json();
+  if (!data) return;
 
-  const ok = await bcrypt.compare(req.body.password, admin.password);
-  if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+  reviewCard.style.display = "block";
+  ratingEl.innerText = data.rating;
+  badgeEl.innerText = data.badge;
+  summaryEl.innerText = `"${data.summary}"`;
 
-  res.json({ message: "Login success" });
-});
+  availableEl.innerText = data.counts.available;
+  delayedEl.innerText = data.counts.delayed;
+  downEl.innerText = data.counts.down;
 
-/* ---------------- USER APIs ---------------- */
+  facilityTitle.innerText =
+    facilitySelect.options[facilitySelect.selectedIndex].text;
+}
 
-app.get("/api/facilities", async (req, res) => {
-  res.json(await Facility.find());
-});
-
-app.get("/api/services/:facilityId", async (req, res) => {
-  res.json(await Service.find({ facilityId: req.params.facilityId }));
-});
-
-/* ---------------- ADMIN APIs ---------------- */
-
-// Add facility
-app.post("/api/facilities", async (req, res) => {
-  res.json(await Facility.create(req.body));
+/* ---------------- EVENTS ---------------- */
+facilitySelect.addEventListener("change", () => {
+  loadServices();
+  loadReview();
 });
 
-// Add service
-app.post("/api/services", async (req, res) => {
-  res.json(await Service.create(req.body));
-});
+/* ---------------- AUTO REFRESH ---------------- */
+setInterval(() => {
+  loadServices();
+  loadReview();
+}, 5000);
 
-// Update service status
-app.put("/api/services/:id", async (req, res) => {
-  const update = {
-    ...req.body,
-    updatedAt: new Date()
-  };
-  res.json(await Service.findByIdAndUpdate(req.params.id, update, { new: true }));
-});
-
-// Delete service
-app.delete("/api/services/:id", async (req, res) => {
-  await Service.findByIdAndDelete(req.params.id);
-  res.json({ message: "Deleted" });
-});
-
-/* ---------------- SEED ---------------- */
-app.get("/api/seed", async (req, res) => {
-  await Facility.deleteMany({});
-  await Service.deleteMany({});
-
-  const campus = await Facility.create({ name: "ABC Campus", type: "Campus" });
-
-  await Service.insertMany([
-    { facilityId: campus._id, name: "IT Lab 1" },
-    { facilityId: campus._id, name: "Cafeteria" }
-  ]);
-
-  res.send("Seeded");
-});
-
-/* ---------------- START ---------------- */
-app.listen(3000, () =>
-  console.log("Server running at http://localhost:3000")
-);
+/* ---------------- INIT ---------------- */
+loadFacilities();
